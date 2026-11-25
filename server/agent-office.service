@@ -1,0 +1,27 @@
+[Unit]
+Description=Agent Office public portfolio
+After=network.target
+
+[Service]
+DynamicUser=true
+WorkingDirectory=/opt/agent-office/server
+Environment=NODE_ENV=production
+Environment=AGENT_OFFICE_MODE=public
+Environment=AGENT_OFFICE_PORT=8788
+Environment=AGENT_OFFICE_STATIC_ROOT=/opt/agent-office/prototype
+Environment=AGENT_OFFICE_SNAPSHOT_FILE=/var/lib/agent-office/public-state.json
+EnvironmentFile=-/etc/agent-office/public.env
+ExecStart=/usr/bin/node /opt/agent-office/server/server.mjs
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=128M
+CPUQuota=25%
+
+[Install]
+WantedBy=multi-user.target

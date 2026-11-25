@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-264 32 112 120" width="224" height="240"><style>
+.floor-paint{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:600;letter-spacing:3px;fill:#fff;fill-opacity:.075}
+.wall-brand{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:500;font-size:17px;letter-spacing:-.3px;fill:#f3f5ff}
+.wall-num{font-family:Manrope,ui-sans-serif,sans-serif;font-weight:800;font-size:8px;fill:#ffd27a;text-anchor:middle}
+.wall-cafe{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:500;font-size:11px;fill:#ffd27a;text-anchor:middle}
+.hat-day{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:600;font-size:17px;fill:#0a1230;text-anchor:middle}
+.screen-glow{opacity:0}.screen-glow.on{opacity:1}
+.led,.blink,.hat-cursor{animation:k-led 2.4s steps(2,jump-none) infinite}.blink{animation-duration:1.6s}.hat-cursor{animation-duration:1s}
+.tw{animation:k-tw 2.6s ease-in-out infinite alternate}
+@keyframes k-led{50%{opacity:.25}}@keyframes k-tw{from{opacity:.6}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+      <defs>
+        <linearGradient id="gWinSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#070d2a"/><stop offset=".6" stop-color="#152a62"/><stop offset="1" stop-color="#2a4a92"/>
+        </linearGradient>
+        <radialGradient id="gLamp"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset=".55" stop-color="#ffd27a" stop-opacity=".14"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gScreen"><stop offset="0" stop-color="#ffe3a6" stop-opacity=".75"/><stop offset=".5" stop-color="#ffd27a" stop-opacity=".22"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gMint"><stop offset="0" stop-color="#5bd1b5" stop-opacity=".35"/><stop offset="1" stop-color="#5bd1b5" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gUnder" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3563d9" stop-opacity=".35"/><stop offset="1" stop-color="#3563d9" stop-opacity="0"/></radialGradient>
+        <filter id="fGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs><polygon points="-250.2,100.7 -224.6,113.5 -224.6,140.5 -250.2,127.7" fill="#3a2c22"/><polygon points="-167.0,84.7 -224.6,113.5 -224.6,140.5 -167.0,111.7" fill="#2a1f18"/><polygon points="-192.6,71.9 -167.0,84.7 -224.6,113.5 -250.2,100.7" fill="#2a1f18"/><polygon points="-252.8,97.7 -224.6,111.8 -224.6,114.8 -252.8,100.7" fill="#caced5"/><polygon points="-164.5,81.7 -224.6,111.8 -224.6,114.8 -164.5,84.7" fill="#a7a9b0"/><polygon points="-192.6,67.6 -164.5,81.7 -224.6,111.8 -252.8,97.7" fill="#eef2fb"/><polygon points="-209.6,59.2 -195.2,66.4 -195.2,88.4 -209.6,81.2" fill="#2a2f45"/><polygon points="-180.8,59.2 -195.2,66.4 -195.2,88.4 -180.8,81.2" fill="#1c2035"/><polygon points="-195.2,52.0 -180.8,59.2 -195.2,66.4 -209.6,59.2" fill="#3a3f55"/><circle cx="-203.52" cy="75.2" r="2" fill="#ff6b6b" class="blink"/><polygon points="-223.0,86.7 -219.2,88.6 -219.2,94.6 -223.0,92.7" fill="#f3f5ff"/><polygon points="-215.4,86.7 -219.2,88.6 -219.2,94.6 -215.4,92.7" fill="#cfd6ea"/><polygon points="-219.2,84.8 -215.4,86.7 -219.2,88.6 -223.0,86.7" fill="#2a1f18"/><polygon points="-226.2,94.7 -222.4,96.6 -222.4,102.6 -226.2,100.7" fill="#f3f5ff"/><polygon points="-218.6,94.7 -222.4,96.6 -222.4,102.6 -218.6,100.7" fill="#cfd6ea"/><polygon points="-222.4,92.8 -218.6,94.7 -222.4,96.6 -226.2,94.7" fill="#2a1f18"/></svg>

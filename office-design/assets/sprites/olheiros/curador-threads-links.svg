@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -20 108 160" width="259" height="384"><style>
+.floor-paint{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:600;letter-spacing:3px;fill:#fff;fill-opacity:.075}
+.wall-brand{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:500;font-size:17px;letter-spacing:-.3px;fill:#f3f5ff}
+.wall-num{font-family:Manrope,ui-sans-serif,sans-serif;font-weight:800;font-size:8px;fill:#ffd27a;text-anchor:middle}
+.wall-cafe{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:500;font-size:11px;fill:#ffd27a;text-anchor:middle}
+.hat-day{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:600;font-size:17px;fill:#0a1230;text-anchor:middle}
+.screen-glow{opacity:0}.screen-glow.on{opacity:1}
+.led,.blink,.hat-cursor{animation:k-led 2.4s steps(2,jump-none) infinite}.blink{animation-duration:1.6s}.hat-cursor{animation-duration:1s}
+.tw{animation:k-tw 2.6s ease-in-out infinite alternate}
+@keyframes k-led{50%{opacity:.25}}@keyframes k-tw{from{opacity:.6}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+      <defs>
+        <linearGradient id="gWinSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#070d2a"/><stop offset=".6" stop-color="#152a62"/><stop offset="1" stop-color="#2a4a92"/>
+        </linearGradient>
+        <radialGradient id="gLamp"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset=".55" stop-color="#ffd27a" stop-opacity=".14"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gScreen"><stop offset="0" stop-color="#ffe3a6" stop-opacity=".75"/><stop offset=".5" stop-color="#ffd27a" stop-opacity=".22"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gMint"><stop offset="0" stop-color="#5bd1b5" stop-opacity=".35"/><stop offset="1" stop-color="#5bd1b5" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gUnder" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3563d9" stop-opacity=".35"/><stop offset="1" stop-color="#3563d9" stop-opacity="0"/></radialGradient>
+        <filter id="fGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+        <g class="ol-feet">
+          <ellipse class="ol-foot-l" cx="32" cy="131" rx="10" ry="4.5" fill="#0a1230" fill-opacity=".6"/>
+          <ellipse class="ol-foot-r" cx="68" cy="131" rx="10" ry="4.5" fill="#0a1230" fill-opacity=".6"/>
+        </g>
+        <g class="ol-body">
+          <path d="M10 58 Q3 100 1 133 H99 Q97 100 90 58 Z" fill="#3563d9"/><path d="M10 58 Q3 100 1 133 H12 Q10 100 14 60Z" fill="#0a1230" opacity=".18"/>
+          <rect x="12" y="50" width="76" height="78" rx="15" fill="#d8a57a"/>
+          <path d="M27 50H73A15 15 0 0 1 88 65V74H12V65A15 15 0 0 1 27 50Z" fill="#fff" opacity=".22"/>
+          <path d="M12 108H88V113A15 15 0 0 1 73 128H27A15 15 0 0 1 12 113Z" fill="#0a1230" opacity=".18"/>
+          <ellipse cx="23" cy="105" rx="5" ry="3" fill="#ff7a9a" fill-opacity=".55"/>
+          <ellipse cx="77" cy="105" rx="5" ry="3" fill="#ff7a9a" fill-opacity=".55"/>
+          <rect class="ol-mouth" x="43" y="110" width="14" height="13" rx="7" fill="#0a1230" fill-opacity=".55"/>
+          <g class="ol-eyes">
+            <rect class="ol-frame" x="17" y="63" width="32" height="36" rx="10" fill="#ffd27a"/>
+            <rect class="ol-frame" x="51" y="63" width="32" height="36" rx="10" fill="#ffd27a"/>
+            <rect x="22" y="68" width="22" height="26" rx="6" fill="#fff4c9" stroke="#0a1230" stroke-opacity=".3" stroke-width="2"/>
+            <rect x="56" y="68" width="22" height="26" rx="6" fill="#fff4c9" stroke="#0a1230" stroke-opacity=".3" stroke-width="2"/>
+            <g class="ol-pupils">
+              <circle cx="33" cy="82" r="6" fill="#0a1230"/><circle cx="67" cy="82" r="6" fill="#0a1230"/>
+              <circle cx="30.5" cy="79.5" r="2" fill="#fff"/><circle cx="64.5" cy="79.5" r="2" fill="#fff"/>
+            </g>
+            <rect class="ol-lid" x="17" y="63" width="66" height="0" fill="#d8a57a"/>
+          </g>
+          <g class="ol-outfit"><path d="M12 56 L26 50 L20 64 Z M88 56 L74 50 L80 64 Z" fill="#3563d9"/><circle cx="50" cy="101" r="3.2" fill="#ffd27a"/></g>
+          <g class="ol-hat"><rect x="24" y="40" width="52" height="11" rx="2" fill="#5674c8"/><rect x="28" y="29" width="46" height="11" rx="2" fill="#f08f6f"/><rect x="26" y="18" width="44" height="11" rx="2" fill="#ffd27a"/><rect x="70" y="42" width="4" height="7" fill="#f3f5ff"/><rect x="68" y="31" width="4" height="7" fill="#f3f5ff"/><rect x="64" y="20" width="4" height="7" fill="#f3f5ff"/></g>
+          <g class="ol-carry" opacity="0">
+            <rect x="70" y="96" width="26" height="20" rx="4" fill="#ffd27a" stroke="#0a1230" stroke-width="2.5"/>
+            <path d="M75 103 H90 M75 109 H85" stroke="#0a1230" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+        </g></svg>

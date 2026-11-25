@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="340.8 48.4 153.6 202.8" width="307" height="406"><style>
+.floor-paint{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:600;letter-spacing:3px;fill:#fff;fill-opacity:.075}
+.wall-brand{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:500;font-size:17px;letter-spacing:-.3px;fill:#f3f5ff}
+.wall-num{font-family:Manrope,ui-sans-serif,sans-serif;font-weight:800;font-size:8px;fill:#ffd27a;text-anchor:middle}
+.wall-cafe{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:500;font-size:11px;fill:#ffd27a;text-anchor:middle}
+.hat-day{font-family:Outfit,ui-sans-serif,sans-serif;font-weight:600;font-size:17px;fill:#0a1230;text-anchor:middle}
+.screen-glow{opacity:0}.screen-glow.on{opacity:1}
+.led,.blink,.hat-cursor{animation:k-led 2.4s steps(2,jump-none) infinite}.blink{animation-duration:1.6s}.hat-cursor{animation-duration:1s}
+.tw{animation:k-tw 2.6s ease-in-out infinite alternate}
+@keyframes k-led{50%{opacity:.25}}@keyframes k-tw{from{opacity:.6}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+      <defs>
+        <linearGradient id="gWinSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#070d2a"/><stop offset=".6" stop-color="#152a62"/><stop offset="1" stop-color="#2a4a92"/>
+        </linearGradient>
+        <radialGradient id="gLamp"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset=".55" stop-color="#ffd27a" stop-opacity=".14"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gScreen"><stop offset="0" stop-color="#ffe3a6" stop-opacity=".75"/><stop offset=".5" stop-color="#ffd27a" stop-opacity=".22"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gMint"><stop offset="0" stop-color="#5bd1b5" stop-opacity=".35"/><stop offset="1" stop-color="#5bd1b5" stop-opacity="0"/></radialGradient>
+        <radialGradient id="gUnder" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3563d9" stop-opacity=".35"/><stop offset="1" stop-color="#3563d9" stop-opacity="0"/></radialGradient>
+        <filter id="fGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs><polygon points="348.8,174.4 486.4,243.2 486.4,125.2 348.8,56.4" fill="#1d306c"/><g transform="matrix(1 0.5 0 1 355.2 81.6)">
+        <rect x="-3" y="-3" width="130.8" height="62" rx="3" fill="#0a1230"/>
+        <rect width="124.8" height="56" fill="#0b1640"/>
+        <polyline class="spark" points="6,40 18,34 28,37 40,22 52,28 64,18 76,24 88,14 100,20 112,12 120,16" fill="none" stroke="#5bd1b5" stroke-width="1.8" stroke-linejoin="round"/>
+        <polyline points="6,48 120,48" stroke="#2f4a9a" stroke-width="1"/>
+        <rect x="8" y="6" width="3" height="10" fill="#ffd27a" opacity=".85"/><rect x="13" y="8" width="3" height="8" fill="#ffd27a" opacity=".85"/><rect x="18" y="10" width="3" height="6" fill="#ffd27a" opacity=".85"/><rect x="23" y="6" width="3" height="10" fill="#ffd27a" opacity=".85"/><rect x="28" y="8" width="3" height="8" fill="#ffd27a" opacity=".85"/><rect x="33" y="10" width="3" height="6" fill="#ffd27a" opacity=".85"/>
+        <circle cx="116" cy="7" r="2.2" fill="#5bd1b5" class="blink"/>
+      </g></svg>

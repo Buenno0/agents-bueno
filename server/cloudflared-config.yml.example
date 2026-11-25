@@ -1,0 +1,21 @@
+# Locally managed named tunnel. Replace placeholders before validation.
+tunnel: <TUNNEL_UUID>
+credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: agents.mateus-bueno.dev
+    path: ^/(admin|api/admin(/.*)?)$
+    service: http://127.0.0.1:8789
+    originRequest:
+      connectTimeout: 5s
+      access:
+        required: true
+        teamName: <ACCESS_TEAM>
+        audTag:
+          - <ADMIN_ACCESS_AUDIENCE>
+  - hostname: agents.mateus-bueno.dev
+    path: ^/($|index\.html$|api/public/(state|weather)$)
+    service: http://127.0.0.1:8788
+    originRequest:
+      connectTimeout: 5s
+  - service: http_status:404

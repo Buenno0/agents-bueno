@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Comandante · Agent Office</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0b1127; color: #f1f4ff; }
+    * { box-sizing: border-box; }
+    header, main { max-width: 960px; margin: auto; padding: 24px; }
+    header { border-bottom: 1px solid #3a4564; }
+    a { color: #bdccff; }
+    h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 600; margin: 16px 0 0; }
+    h2 { font-size: 1.2rem; font-weight: 600; margin: 0; }
+    label { display: block; font-weight: 600; margin: 0 0 8px; }
+    p { line-height: 1.55; }
+    .muted, [role="status"] { color: #c1cbe5; }
+    select, textarea, input, button { font: inherit; border-radius: 8px; border: 1px solid #53617f; }
+    select, textarea, input { color: inherit; background: #111933; padding: 10px; width: 100%; }
+    select { max-width: 420px; }
+    textarea { resize: vertical; }
+    button { background: #263764; color: inherit; padding: 9px 14px; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: default; }
+    :focus-visible { outline: 2px solid #ffd27a; outline-offset: 3px; }
+    .columns { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; margin-top: 32px; }
+    section { border-top: 1px solid #3a4564; padding-top: 16px; min-width: 0; }
+    form { margin: 16px 0; }
+    form button { margin-top: 12px; }
+    article { border-top: 1px solid #3a4564; margin-top: 16px; padding-top: 12px; }
+    fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+    fieldset label:not(:first-child) { margin-top: 16px; }
+    #answer { white-space: pre-wrap; overflow-wrap: anywhere; }
+    @media (max-width: 650px) { .columns { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="https://agents.mateus-bueno.dev/">Vitrine Agent Office</a>
+    <h1>Comandante</h1>
+  </header>
+  <main>
+    <label for="agent">Agente</label>
+    <select id="agent"></select>
+    <p id="presence" class="muted">Presença desconhecida</p>
+    <div class="columns">
+      <section aria-labelledby="taskHeading">
+        <h2 id="taskHeading">Tarefa</h2>
+        <form id="dispatch">
+          <label for="message">Instruções</label>
+          <textarea id="message" required maxlength="4000" rows="5"></textarea>
+          <button id="send" type="submit">Enviar tarefa</button>
+        </form>
+        <p id="delivery" role="status"></p>
+        <p id="answer" hidden></p>
+      </section>
+      <section aria-labelledby="pendingHeading">
+        <h2 id="pendingHeading">Pendências</h2>
+        <p class="muted">Decida aprovações e assuma o navegador pelo OpenBot.</p>
+        <button type="button" id="refresh">Atualizar pendências</button>
+        <p id="pendingStatus" role="status"></p>
+        <div id="pending"></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    'use strict';
+    const catalog = /* AGENT_CATALOG */ [];
+    const byId = id => document.getElementById(id);
+    const agent = byId('agent');
+    const message = byId('message');
+    const send = byId('send');
+    const refresh = byId('refresh');
+    const deliveries = new Map();
+    const drafts = new Map();
+    const presence = new Map();
+    const active = new Set(['queued', 'starting', 'running']);
+    const deliveryLabels = {
+      queued: 'Na fila', starting: 'Iniciando', running: 'Em execução', completed: 'Concluída',
+      failed: 'Falhou', interrupted: 'Interrompida', cancelled: 'Cancelada'
+    };
+    const presenceLabels = { ready: 'Disponível', working: 'Trabalhando', queued: 'Na fila', waiting: 'Aguardando' };
+    const roomNames = { 'Hub Central': 'Recepção', 'War Room Infra': 'Sala técnica', 'Product Lab': 'Estúdio', 'Personal Ops': 'Dia a dia' };
+    const groups = new Map();
+    for (const { slug, displayName, room } of catalog) {
+      if (!groups.has(room)) {
+        const group = document.createElement('optgroup');
+        group.label = roomNames[room] || room;
+        agent.append(group);
+        groups.set(room, group);
+      }
+      groups.get(room).append(new Option(displayName, slug));
+    }
+
+    const route = slug => '/api/admin/agents/' + encodeURIComponent(slug);
+    let csrfToken;
+    async function api(path, body) {
+      const headers = { Accept: 'application/json' };
+      if (body) {
+        csrfToken ||= (await api('/api/admin/session')).csrfToken;
+        headers['Content-Type'] = 'application/json';
+        headers['X-Agent-Office-CSRF'] = csrfToken;
+      }
+      const response = await fetch(path, {
+        headers, method: body ? 'POST' : 'GET', body: body ? JSON.stringify(body) : undefined,
+        redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000)
+      });
+      if (!response.ok) {
+        const status = response.status || 401;
+        if ([401, 403].includes(status)) csrfToken = undefined;
+        throw Object.assign(new Error('request_failed'), {
+          status, retryAfter: (Number(response.headers.get('Retry-After')) || 0) * 1000
+        });
+      }
+      return response.json();
+    }
+    function describeError(error) {
+      if ([401, 403].includes(error.status)) return 'Sessão indisponível. Confira o acesso pelo Comandante.';
+      if (error.status === 404) return 'Este agente ou pedido está indisponível no Comandante.';
+      if (error.status === 429) return 'Limite de pedidos atingido. Aguarde antes de tentar de novo.';
+      return 'Não foi possível confirmar a operação.';
+    }
+
+    let selected = agent.value;
+    let pollTimer;
+    let polling = false;
+    function drawTask() {
+      const item = deliveries.get(selected);
+      message.readOnly = Boolean(item?.request || active.has(item?.status));
+      send.disabled = Boolean(item?.busy || active.has(item?.status));
+      send.textContent = item?.request && !item.busy ? 'Repetir o mesmo envio' : 'Enviar tarefa';
+      byId('delivery').textContent = item?.notice || deliveryLabels[item?.status] || '';
+      byId('answer').textContent = item?.answer || '';
+      byId('answer').hidden = !item?.answer;
+    }
+    function schedulePoll(delay = 3000) {
+      clearTimeout(pollTimer);
+      const item = deliveries.get(selected);
+      if (!document.hidden && !polling && active.has(item?.status)) pollTimer = setTimeout(readDelivery, delay);
+    }
+    async function readDelivery() {
+      const slug = selected;
+      const item = deliveries.get(slug);
+      if (document.hidden || !active.has(item?.status)) return;
+      polling = true;
+      let delay;
+      try {
+        Object.assign(item, await api(route(slug) + '/deliveries/' + encodeURIComponent(item.deliveryId)));
+        item.notice = '';
+        item.wait = 3000;
+      } catch (error) {
+        item.notice = describeError(error);
+        item.wait = Math.min((item.wait || 3000) * 2, 60000);
+        delay = Math.max(item.wait, error.retryAfter || 0);
+      } finally {
+        polling = false;
+        if (slug === selected) drawTask();
+        schedulePoll(slug === selected ? delay : 3000);
+      }
+    }
+    document.addEventListener('visibilitychange', () => schedulePoll());
+
+    byId('dispatch').addEventListener('submit', async event => {
+      event.preventDefault();
+      const slug = selected;
+      const previous = deliveries.get(slug);
+      const text = message.value.trim();
+      if (!text || previous?.busy || active.has(previous?.status)) return;
+      const item = {
+        request: previous?.request || { text, clientMessageId: crypto.randomUUID() },
+        started: previous?.request ? previous.started : Date.now()
+      };
+      deliveries.set(slug, item);
+      if (Date.now() - item.started >= 24 * 60 * 60 * 1000) {
+        item.notice = 'O prazo de reenvio terminou. Confira o pedido no OpenBot antes de criar outro.';
+        drawTask();
+        return;
+      }
+      item.busy = true;
+      item.notice = 'Enviando…';
+      drawTask();
+      try {
+        Object.assign(item, await api(route(slug) + '/messages', item.request));
+        item.request = null;
+        item.notice = '';
+        drafts.delete(slug);
+        if (slug === selected) message.value = '';
+      } catch (error) {
+        const rejected = [400, 404, 413, 415].includes(error.status);
+        if (rejected && !previous?.request) item.request = null;
+        item.notice = error.status === 409
+          ? 'O servidor rejeitou o recibo. Confira a tarefa no OpenBot.'
+          : describeError(error);
+      } finally {
+        item.busy = false;
+        if (slug === selected) {
+          drawTask();
+          schedulePoll();
+        }
+      }
+    });
+
+    let pendingVersion = 0;
+    function pendingCard(slug, item, version) {
+      const card = document.createElement('article');
+      if (item.requiresOpenBot) {
+        const title = { approval: 'Aprovação', browser_takeover: 'Controle do navegador', question: 'Pergunta' };
+        card.textContent = (title[item.kind] || 'Pendência') + ' disponível no OpenBot.';
+        return card;
+      }
+      const form = document.createElement('form');
+      const inputs = [];
+      const fields = document.createElement('fieldset');
+      for (const question of item.questions) {
+        const label = document.createElement('label');
+        label.textContent = question.question;
+        const input = document.createElement(question.options ? 'select' : 'input');
+        input.required = true;
+        input.autocomplete = 'off';
+        if (question.options) {
+          input.append(new Option('Escolher resposta', ''));
+          for (const option of question.options) {
+            input.append(new Option(option.description ? option.label + ' (' + option.description + ')' : option.label, option.label));
+          }
+        } else {
+          input.maxLength = 1000;
+        }
+        inputs.push([question.id, input]);
+        label.append(input);
+        fields.append(label);
+      }
+      const button = document.createElement('button');
+      button.type = 'submit';
+      button.textContent = 'Enviar respostas';
+      fields.append(button);
+      form.append(fields);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const answers = Object.fromEntries(inputs.map(([id, input]) => [id, [input.value]]));
+        if (Object.values(answers).some(([value]) => !value.trim())) return;
+        fields.disabled = true;
+        const status = byId('pendingStatus');
+        try {
+          await api(route(slug) + '/pending/' + encodeURIComponent(item.pendingId) + '/answer', { answers });
+          if (version === pendingVersion) {
+            card.remove();
+            status.textContent = 'Resposta enviada.';
+          }
+        } catch (error) {
+          if (version === pendingVersion) {
+            const stale = [404, 409].includes(error.status);
+            status.textContent = stale ? 'Atualize a lista de pendências.' : describeError(error);
+            fields.disabled = stale;
+          }
+        }
+      });
+      card.append(form);
+      return card;
+    }
+    async function readPending() {
+      const slug = selected;
+      const version = ++pendingVersion;
+      const status = byId('pendingStatus');
+      const list = byId('pending');
+      list.replaceChildren();
+      status.textContent = 'Consultando…';
+      refresh.disabled = true;
+      try {
+        const { items } = await api(route(slug) + '/pending');
+        if (version !== pendingVersion) return;
+        list.replaceChildren(...items.map(item => pendingCard(slug, item, version)));
+        status.textContent = items.length ? '' : 'Nenhuma pendência.';
+      } catch (error) {
+        if (version === pendingVersion) status.textContent = describeError(error);
+      } finally {
+        if (version === pendingVersion) refresh.disabled = false;
+      }
+    }
+    function drawPresence() {
+      byId('presence').textContent = presenceLabels[presence.get(selected)] || 'Presença desconhecida';
+    }
+    agent.addEventListener('change', () => {
+      drafts.set(selected, message.value);
+      selected = agent.value;
+      message.value = deliveries.get(selected)?.request?.text || drafts.get(selected) || '';
+      drawTask();
+      drawPresence();
+      schedulePoll();
+      readPending();
+    });
+    refresh.addEventListener('click', readPending);
+    api('/api/admin/state').then(({ agents }) => {
+      for (const { slug, status } of agents) presence.set(slug, status);
+      drawPresence();
+    }).catch(() => drawPresence());
+    drawTask();
+    if (selected) readPending();
+  </script>
+</body>
+</html>

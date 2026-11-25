@@ -1,0 +1,32 @@
+[Unit]
+Description=Agent Office private Commander API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+# Use the actual OS identity of the OpenBot service.
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/agent-office/server
+Environment=NODE_ENV=production
+Environment=AGENT_OFFICE_MODE=admin
+Environment=AGENT_OFFICE_PORT=8789
+Environment=OPENBOT_AUTOMATION_DIR=/home/ubuntu/.config/OpenBot/automation
+EnvironmentFile=/etc/agent-office/admin.env
+ExecStart=/usr/bin/node /opt/agent-office/server/server.mjs
+Restart=on-failure
+RestartSec=3
+
+StateDirectory=agent-office-admin
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=128M
+CPUQuota=25%
+
+[Install]
+WantedBy=multi-user.target

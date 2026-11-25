@@ -1,0 +1,132 @@
+# Checa, testa e publica o Agent Office em https://agents.mateus-bueno.dev
+#
+# - Todo push e pull request: checagens (build em dia, planta, servidor, privacidade).
+# - Push na main: depois das checagens, o deploy espera aprovação no ambiente
+#   "production" e só roda quando a variável DEPLOY_ENABLED = "true" existir.
+name: CI e deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agents-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Checar e empacotar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Servidor compila
+        run: node --check server/server.mjs
+
+      - name: prototype/index.html está em dia com office-design/
+        run: |
+          node office-design/build-prototype.mjs
+          if ! git diff --quiet -- prototype/index.html office-design/index.html; then
+            echo "::error::Rode 'node office-design/build-prototype.mjs' e faça commit do prototype/index.html."
+            git diff --stat
+            exit 1
+          fi
+
+      - name: Planta automática (toda mesa alcança todos os agentes)
+        run: node scripts/test-layout.mjs
+
+      - name: Servidor público responde certo
+        run: |
+          AGENT_OFFICE_PORT=8788 AGENT_OFFICE_SNAPSHOT_FILE=/tmp/sem-snapshot.json node server/server.mjs > /tmp/server.log 2>&1 &
+          for i in $(seq 1 20); do curl -fs http://127.0.0.1:8788/healthz >/dev/null && break; sleep 0.5; done
+          code() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8788$1"; }
+          test "$(code /)" = 200
+          test "$(code /healthz)" = 200
+          test "$(code /api/public/state)" = 503
+          test "$(code /api/admin/session)" = 404
+          test "$(code /qualquer-coisa)" = 404
+          curl -sI http://127.0.0.1:8788/ | grep -qi "content-security-policy: default-src 'none'"
+          echo "rotas ok"
+
+      - name: Nada privado nos arquivos publicados
+        run: |
+          files=$(git ls-files | grep -vE '\.(svg|png|jpg)$')
+          if grep -nIE "@s\.whatsapp\.net|@g\.us|gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|/Users/[a-z]+/" $files | grep -v '^\.github/'; then
+            echo "::error::Encontrei algo que parece dado privado (JID, token ou caminho local)."; exit 1
+          fi
+          if grep -noIE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" $files | grep -vE ":(127\.0\.0\.1|0\.0\.0\.0)$"; then
+            echo "::error::Encontrei um endereço IP nos arquivos."; exit 1
+          fi
+
+      - name: Pacote da versão
+        run: |
+          mkdir -p release
+          cp prototype/index.html server/server.mjs server/commander.html release/
+          (cd release && sha256sum index.html server.mjs commander.html > SHA256SUMS && cat SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release/
+          retention-days: 14
+
+  deploy:
+    name: Publicar na VPS
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://agents.mateus-bueno.dev
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+
+      - name: Chave SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+
+      - name: Enviar e instalar
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+        run: |
+          DEST="/tmp/agent-office-release-${GITHUB_SHA}"
+          SSH="ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=yes -o BatchMode=yes"
+          $SSH "$USER@$HOST" "rm -rf '$DEST' && mkdir -m 700 '$DEST'"
+          scp -i ~/.ssh/deploy -o StrictHostKeyChecking=yes -o BatchMode=yes release/* "$USER@$HOST:$DEST/"
+          $SSH "$USER@$HOST" "sudo /usr/local/bin/agent-office-deploy '$DEST'"
+
+      - name: Conferir no ar
+        run: |
+          for i in $(seq 1 10); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' https://agents.mateus-bueno.dev/)" = 200 ] && break; sleep 3
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' https://agents.mateus-bueno.dev/)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' https://agents.mateus-bueno.dev/healthz)" = 404
+          curl -s https://agents.mateus-bueno.dev/api/public/weather || true
+
+      - name: Limpar chave
+        if: always()
+        run: rm -f ~/.ssh/deploy

@@ -1,0 +1,520 @@
+[
+  {
+    "group": "olheiros",
+    "name": "whatsapp-orchestrator",
+    "label": "Orchestrator",
+    "file": "assets/sprites/olheiros/whatsapp-orchestrator.svg",
+    "note": "Atende o WhatsApp e encaminha"
+  },
+  {
+    "group": "olheiros",
+    "name": "assistente-codex",
+    "label": "Codex",
+    "file": "assets/sprites/olheiros/assistente-codex.svg",
+    "note": "Divide e acompanha o trabalho técnico"
+  },
+  {
+    "group": "olheiros",
+    "name": "cloud-ops",
+    "label": "Cloud Ops",
+    "file": "assets/sprites/olheiros/cloud-ops.svg",
+    "note": "Cuida do servidor"
+  },
+  {
+    "group": "olheiros",
+    "name": "devops-observabilidade",
+    "label": "DevOps",
+    "file": "assets/sprites/olheiros/devops-observabilidade.svg",
+    "note": "Vigia se tudo está no ar"
+  },
+  {
+    "group": "olheiros",
+    "name": "supabase-db",
+    "label": "Supabase",
+    "file": "assets/sprites/olheiros/supabase-db.svg",
+    "note": "Cuida do banco de dados"
+  },
+  {
+    "group": "olheiros",
+    "name": "suporte-saude-bugs",
+    "label": "Suporte",
+    "file": "assets/sprites/olheiros/suporte-saude-bugs.svg",
+    "note": "Descobre onde as coisas quebram"
+  },
+  {
+    "group": "olheiros",
+    "name": "nexus-pesquisa",
+    "label": "Nexus",
+    "file": "assets/sprites/olheiros/nexus-pesquisa.svg",
+    "note": "Pesquisa e testa ideias"
+  },
+  {
+    "group": "olheiros",
+    "name": "viu-mercado-adocao",
+    "label": "Viu",
+    "file": "assets/sprites/olheiros/viu-mercado-adocao.svg",
+    "note": "Acompanha o Viu na Cidade"
+  },
+  {
+    "group": "olheiros",
+    "name": "pitch-design",
+    "label": "Pitch",
+    "file": "assets/sprites/olheiros/pitch-design.svg",
+    "note": "Monta apresentações"
+  },
+  {
+    "group": "olheiros",
+    "name": "curador-threads-links",
+    "label": "Curador",
+    "file": "assets/sprites/olheiros/curador-threads-links.svg",
+    "note": "Separa o que vale ler"
+  },
+  {
+    "group": "olheiros",
+    "name": "faculdade-suap",
+    "label": "SUAP",
+    "file": "assets/sprites/olheiros/faculdade-suap.svg",
+    "note": "Busca notas e prazos"
+  },
+  {
+    "group": "olheiros",
+    "name": "agenda-semana",
+    "label": "Agenda",
+    "file": "assets/sprites/olheiros/agenda-semana.svg",
+    "note": "Organiza a semana"
+  },
+  {
+    "group": "olheiros",
+    "name": "insights-diario",
+    "label": "Insights",
+    "file": "assets/sprites/olheiros/insights-diario.svg",
+    "note": "Guarda o diário organizado"
+  },
+  {
+    "group": "olheiros",
+    "name": "voce",
+    "label": "Você",
+    "file": "assets/sprites/olheiros/voce.svg",
+    "note": "Avatar do modo Comandante"
+  },
+  {
+    "group": "olheiros",
+    "name": "olheiro-base",
+    "label": "Olheiro base",
+    "file": "assets/sprites/olheiros/olheiro-base.svg",
+    "note": "Sem chapéu, cor do Viu"
+  },
+  {
+    "group": "olheiros",
+    "name": "olheiro-carregando",
+    "label": "Carregando tarefa",
+    "file": "assets/sprites/olheiros/olheiro-carregando.svg",
+    "note": "Estado de entrega"
+  },
+  {
+    "group": "chapeus",
+    "name": "bubble",
+    "label": "Balão",
+    "file": "assets/sprites/chapeus/bubble.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "terminal",
+    "label": "Tela",
+    "file": "assets/sprites/chapeus/terminal.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "cloud",
+    "label": "Nuvem",
+    "file": "assets/sprites/chapeus/cloud.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "radar",
+    "label": "Antena",
+    "file": "assets/sprites/chapeus/radar.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "db",
+    "label": "Pilha",
+    "file": "assets/sprites/chapeus/db.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "hardhat",
+    "label": "Capacete",
+    "file": "assets/sprites/chapeus/hardhat.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "atom",
+    "label": "Átomo",
+    "file": "assets/sprites/chapeus/atom.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "pin",
+    "label": "Pino do Viu",
+    "file": "assets/sprites/chapeus/pin.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "beret",
+    "label": "Boina",
+    "file": "assets/sprites/chapeus/beret.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "books",
+    "label": "Livros",
+    "file": "assets/sprites/chapeus/books.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "grad",
+    "label": "Capelo",
+    "file": "assets/sprites/chapeus/grad.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "calendar",
+    "label": "Calendário",
+    "file": "assets/sprites/chapeus/calendar.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "bulb",
+    "label": "Lâmpada",
+    "file": "assets/sprites/chapeus/bulb.svg",
+    "note": ""
+  },
+  {
+    "group": "chapeus",
+    "name": "crown",
+    "label": "Coroa",
+    "file": "assets/sprites/chapeus/crown.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "scarf",
+    "label": "Cachecol",
+    "file": "assets/sprites/roupas/scarf.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "bowtie",
+    "label": "Gravata-borboleta",
+    "file": "assets/sprites/roupas/bowtie.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "vest",
+    "label": "Colete",
+    "file": "assets/sprites/roupas/vest.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "hoodie",
+    "label": "Moletom",
+    "file": "assets/sprites/roupas/hoodie.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "badge",
+    "label": "Crachá",
+    "file": "assets/sprites/roupas/badge.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "cape",
+    "label": "Capa",
+    "file": "assets/sprites/roupas/cape.svg",
+    "note": ""
+  },
+  {
+    "group": "roupas",
+    "name": "headphones",
+    "label": "Fone",
+    "file": "assets/sprites/roupas/headphones.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "planta",
+    "label": "Planta",
+    "file": "assets/sprites/moveis/planta.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "planta-alta",
+    "label": "Planta alta",
+    "file": "assets/sprites/moveis/planta-alta.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "abajur",
+    "label": "Abajur",
+    "file": "assets/sprites/moveis/abajur.svg",
+    "note": "Com a poça de luz no chão"
+  },
+  {
+    "group": "moveis",
+    "name": "rack",
+    "label": "Rack de servidor",
+    "file": "assets/sprites/moveis/rack.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "sofa",
+    "label": "Sofá",
+    "file": "assets/sprites/moveis/sofa.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "mesa-de-centro",
+    "label": "Mesa de centro",
+    "file": "assets/sprites/moveis/mesa-de-centro.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "arquivo",
+    "label": "Arquivo de aço",
+    "file": "assets/sprites/moveis/arquivo.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "cafe",
+    "label": "Estação de café",
+    "file": "assets/sprites/moveis/cafe.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "puff-rosa",
+    "label": "Puff rosa",
+    "file": "assets/sprites/moveis/puff-rosa.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "puff-amarelo",
+    "label": "Puff amarelo",
+    "file": "assets/sprites/moveis/puff-amarelo.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "puff-menta",
+    "label": "Puff menta",
+    "file": "assets/sprites/moveis/puff-menta.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "estacao-a",
+    "label": "Mesa + cadeira (lado A)",
+    "file": "assets/sprites/moveis/estacao-a.svg",
+    "note": "Agente olha pra direita"
+  },
+  {
+    "group": "moveis",
+    "name": "estacao-b",
+    "label": "Mesa + cadeira (lado B)",
+    "file": "assets/sprites/moveis/estacao-b.svg",
+    "note": "Agente olha pra esquerda"
+  },
+  {
+    "group": "moveis",
+    "name": "estacao-a-ligada",
+    "label": "Mesa com monitor aceso",
+    "file": "assets/sprites/moveis/estacao-a-ligada.svg",
+    "note": "Estado trabalhando"
+  },
+  {
+    "group": "moveis",
+    "name": "balcao",
+    "label": "Balcão da recepção",
+    "file": "assets/sprites/moveis/balcao.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "divisoria",
+    "label": "Mureta entre salas",
+    "file": "assets/sprites/moveis/divisoria.svg",
+    "note": ""
+  },
+  {
+    "group": "moveis",
+    "name": "divisoria-porta",
+    "label": "Mureta com porta",
+    "file": "assets/sprites/moveis/divisoria-porta.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "janela-lua",
+    "label": "Janela com lua",
+    "file": "assets/sprites/parede/janela-lua.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "janela",
+    "label": "Janela",
+    "file": "assets/sprites/parede/janela.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "letreiro",
+    "label": "Letreiro da recepção",
+    "file": "assets/sprites/parede/letreiro.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "relogio",
+    "label": "Relógio de parede",
+    "file": "assets/sprites/parede/relogio.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "elevador",
+    "label": "Elevador do 13º",
+    "file": "assets/sprites/parede/elevador.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "painel-war-room",
+    "label": "Painel da War Room",
+    "file": "assets/sprites/parede/painel-war-room.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "lousa",
+    "label": "Lousa do Lab",
+    "file": "assets/sprites/parede/lousa.svg",
+    "note": ""
+  },
+  {
+    "group": "parede",
+    "name": "quadro-cafe",
+    "label": "Quadro do café",
+    "file": "assets/sprites/parede/quadro-cafe.svg",
+    "note": ""
+  },
+  {
+    "group": "piso",
+    "name": "piso-hub",
+    "label": "Piso Recepção",
+    "file": "assets/sprites/piso/piso-hub.svg",
+    "note": ""
+  },
+  {
+    "group": "piso",
+    "name": "piso-infra",
+    "label": "Piso Sala Técnica",
+    "file": "assets/sprites/piso/piso-infra.svg",
+    "note": ""
+  },
+  {
+    "group": "piso",
+    "name": "piso-hall",
+    "label": "Piso Corredor",
+    "file": "assets/sprites/piso/piso-hall.svg",
+    "note": ""
+  },
+  {
+    "group": "piso",
+    "name": "piso-lab",
+    "label": "Piso Estúdio",
+    "file": "assets/sprites/piso/piso-lab.svg",
+    "note": ""
+  },
+  {
+    "group": "piso",
+    "name": "piso-ops",
+    "label": "Piso Dia a dia",
+    "file": "assets/sprites/piso/piso-ops.svg",
+    "note": ""
+  },
+  {
+    "group": "marca",
+    "name": "logo",
+    "label": "Logo",
+    "file": "assets/sprites/marca/logo.svg",
+    "note": ""
+  },
+  {
+    "group": "marca",
+    "name": "favicon",
+    "label": "Favicon",
+    "file": "assets/sprites/marca/favicon.svg",
+    "note": ""
+  },
+  {
+    "group": "marca",
+    "name": "lua-com-olho",
+    "label": "Lua com olho",
+    "file": "assets/sprites/marca/lua-com-olho.svg",
+    "note": "Easter egg do modo Visitante"
+  },
+  {
+    "group": "marca",
+    "name": "lua-dormindo",
+    "label": "Lua dormindo",
+    "file": "assets/sprites/marca/lua-dormindo.svg",
+    "note": "Modo Comandante"
+  },
+  {
+    "group": "andar",
+    "name": "andar-vazio",
+    "label": "Andar sem ninguém",
+    "file": "assets/sprites/andar/andar-vazio.svg",
+    "note": ""
+  },
+  {
+    "group": "andar",
+    "name": "andar-completo",
+    "label": "Andar com os 13",
+    "file": "assets/sprites/andar/andar-completo.svg",
+    "note": ""
+  },
+  {
+    "group": "andar",
+    "name": "andar-com-grupos-novos",
+    "label": "Exemplo: 2 grupos novos",
+    "file": "assets/sprites/andar/andar-com-grupos-novos.svg",
+    "note": "Financeiro e Marketing viraram salas sozinhos"
+  }
+]

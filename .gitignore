@@ -1,0 +1,13 @@
+# Documentos internos (dados de infraestrutura e caminhos locais): ficam fora do repositório público
+BRIEF-AGENT-OFFICE.md
+DIRECAO-VISUAL-E-REFERENCIAS.md
+previews/
+prototype/index.v2-backup.html
+
+# Locais
+.claude/
+**/.claude/
+.DS_Store
+node_modules/
+*.log
+*.sqlite

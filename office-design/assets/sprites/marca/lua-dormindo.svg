@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="moon-svg" viewBox="0 0 44 44" width="176" height="176" aria-hidden="true" style="overflow:visible">
+        <circle cx="22" cy="22" r="20" fill="#fff3c9"/>
+        <circle cx="12" cy="14" r="3.2" fill="#f2deaa"/><circle cx="31" cy="32" r="2.4" fill="#f2deaa"/><circle cx="33" cy="12" r="1.8" fill="#f2deaa"/><circle cx="11" cy="30" r="1.5" fill="#f2deaa"/>
+        <path class="moon-sleep" d="M16 23 Q22 27 28 23" stroke="#c9a96a" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      </svg>

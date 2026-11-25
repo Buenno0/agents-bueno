@@ -1,0 +1,16 @@
+# Public-only direct TLS alternative. Commander remains on the protected Tunnel.
+agents.mateus-bueno.dev {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        -Server
+    }
+
+    @office_public path / /index.html /api/public/state /api/public/weather
+    handle @office_public {
+        reverse_proxy 127.0.0.1:8788
+    }
+    handle {
+        respond 404
+    }
+}
