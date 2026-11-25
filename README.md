@@ -37,6 +37,7 @@ python3 office-design/serve.py 4317           # interface (sem cache) em http://
 node office-design/build-prototype.mjs        # gera prototype/index.html
 AGENT_OFFICE_PORT=8788 node server/server.mjs # servidor público em http://127.0.0.1:8788
 node scripts/test-layout.mjs                  # testa a planta automática
+node --test scripts/test-security.mjs         # testa login e isolamento com dados fictícios
 ```
 
 Precisa de Node 22 ou mais novo.
@@ -45,11 +46,11 @@ Precisa de Node 22 ou mais novo.
 
 - A rota pública (`/api/public/state`) devolve só uma lista branca de campos por agente: nunca conversas, telefones, tokens ou IPs.
 - A página roda com CSP estrita, e só o próprio servidor busca dados externos (clima).
-- O Comandante exige Cloudflare Access + CSRF e fala com o OpenBot apenas em `127.0.0.1`.
+- A configuração de login direto do Comandante usa endereço separado da vitrine, senha com scrypt, sessão revogável e proteção CSRF. O serviço fala com o OpenBot apenas em `127.0.0.1`.
 - Ações perigosas continuam pedindo confirmação no próprio OpenBot.
 
 Detalhes em [ARQUITETURA-E-SEGURANCA.md](ARQUITETURA-E-SEGURANCA.md) e [PLANO-DEPLOY-OCI.md](PLANO-DEPLOY-OCI.md).
 
 ## Deploy
 
-Push na `main` → o GitHub Actions checa e empacota → depois de uma aprovação no ambiente `production`, envia pra VPS e instala com `deploy/agent-office-deploy.sh`, que volta sozinho pra versão anterior se a página não subir. A configuração completa está em [DEPLOY-VPS.md](DEPLOY-VPS.md).
+Push na `main` → o GitHub Actions checa e empacota a vitrine → depois de uma aprovação no ambiente `production`, instala na VPS com `deploy/agent-office-deploy.sh`, que restaura a vitrine se a nova página não subir. O Comandante tem código instalado separadamente. A configuração está em [DEPLOY-VPS.md](DEPLOY-VPS.md).

@@ -1,0 +1,18 @@
+comandante.mateus-bueno.dev {
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Robots-Tag "noindex, nofollow"
+        -Server
+    }
+
+    @commander path /admin /api/admin/*
+    handle @commander {
+        reverse_proxy 127.0.0.1:8789 {
+            header_up X-Office-Client-IP {remote_host}
+            header_up -CF-Access-Jwt-Assertion
+        }
+    }
+    handle {
+        respond 404
+    }
+}

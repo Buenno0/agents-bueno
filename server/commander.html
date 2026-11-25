@@ -39,7 +39,17 @@
     <a href="https://agents.mateus-bueno.dev/">Vitrine Agent Office</a>
     <h1>Comandante</h1>
   </header>
-  <main>
+  <main id="signIn" hidden>
+    <form id="login" method="post">
+      <label for="password">Senha do Comandante</label>
+      <input id="password" type="password" autocomplete="current-password" required maxlength="1024">
+      <button id="enter" type="submit">Entrar</button>
+    </form>
+    <p id="loginStatus" role="status"></p>
+  </main>
+  <main id="workspace" hidden>
+    <button id="logout" type="button" hidden>Sair</button>
+    <p id="sessionStatus" role="status"></p>
     <label for="agent">Agente</label>
     <select id="agent"></select>
     <p id="presence" class="muted">Presença desconhecida</p>
@@ -66,6 +76,7 @@
   <script>
     'use strict';
     const catalog = /* AGENT_CATALOG */ [];
+    const passwordLogin = /* PASSWORD_LOGIN */ false;
     const byId = id => document.getElementById(id);
     const agent = byId('agent');
     const message = byId('message');
@@ -94,12 +105,24 @@
 
     const route = slug => '/api/admin/agents/' + encodeURIComponent(slug);
     let csrfToken;
+    let signedIn = false;
+    function showLogin(text = '') {
+      signedIn = false;
+      clearTimeout(pollTimer);
+      byId('workspace').hidden = true;
+      byId('signIn').hidden = false;
+      byId('loginStatus').textContent = text;
+      byId('password').focus();
+    }
+
     async function api(path, body) {
       const headers = { Accept: 'application/json' };
       if (body) {
-        csrfToken ||= (await api('/api/admin/session')).csrfToken;
         headers['Content-Type'] = 'application/json';
-        headers['X-Agent-Office-CSRF'] = csrfToken;
+        if (path !== '/api/admin/login') {
+          csrfToken ||= (await api('/api/admin/session')).csrfToken;
+          headers['X-Agent-Office-CSRF'] = csrfToken;
+        }
       }
       const response = await fetch(path, {
         headers, method: body ? 'POST' : 'GET', body: body ? JSON.stringify(body) : undefined,
@@ -107,7 +130,8 @@
       });
       if (!response.ok) {
         const status = response.status || 401;
-        if ([401, 403].includes(status)) csrfToken = undefined;
+        if (status === 401 || status === 403) csrfToken = undefined;
+        if (status === 401 && passwordLogin && signedIn) showLogin('Entre novamente para continuar.');
         throw Object.assign(new Error('request_failed'), {
           status, retryAfter: (Number(response.headers.get('Retry-After')) || 0) * 1000
         });
@@ -136,7 +160,7 @@
     function schedulePoll(delay = 3000) {
       clearTimeout(pollTimer);
       const item = deliveries.get(selected);
-      if (!document.hidden && !polling && active.has(item?.status)) pollTimer = setTimeout(readDelivery, delay);
+      if (signedIn && !document.hidden && !polling && active.has(item?.status)) pollTimer = setTimeout(readDelivery, delay);
     }
     async function readDelivery() {
       const slug = selected;
@@ -289,12 +313,57 @@
       readPending();
     });
     refresh.addEventListener('click', readPending);
-    api('/api/admin/state').then(({ agents }) => {
-      for (const { slug, status } of agents) presence.set(slug, status);
-      drawPresence();
-    }).catch(() => drawPresence());
-    drawTask();
-    if (selected) readPending();
+    function openWorkspace(token) {
+      csrfToken = token;
+      signedIn = true;
+      byId('signIn').hidden = true;
+      byId('workspace').hidden = false;
+      byId('logout').hidden = !passwordLogin;
+      api('/api/admin/state').then(({ agents }) => {
+        for (const { slug, status } of agents) presence.set(slug, status);
+        drawPresence();
+      }).catch(() => drawPresence());
+      drawTask();
+      schedulePoll();
+      if (selected) readPending();
+    }
+    byId('login').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (byId('enter').disabled) return;
+      const input = byId('password');
+      const password = input.value;
+      input.value = '';
+      byId('enter').disabled = true;
+      byId('loginStatus').textContent = 'Verificando…';
+      try {
+        openWorkspace((await api('/api/admin/login', { password })).csrfToken);
+      } catch (error) {
+        showLogin(error.status === 401 ? 'Senha incorreta.' : describeError(error));
+      } finally {
+        byId('enter').disabled = false;
+      }
+    });
+    byId('logout').addEventListener('click', async () => {
+      const button = byId('logout');
+      button.disabled = true;
+      try {
+        await api('/api/admin/logout', {});
+        location.reload();
+      } catch (error) {
+        byId('sessionStatus').textContent = describeError(error);
+        button.disabled = false;
+      }
+    });
+    window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
+    api('/api/admin/session').then(({ csrfToken }) => openWorkspace(csrfToken)).catch(error => {
+      if (passwordLogin && error.status === 401) showLogin();
+      else {
+        const message = document.createElement('p');
+        message.setAttribute('role', 'status');
+        message.textContent = describeError(error);
+        document.querySelector('header').append(message);
+      }
+    });
   </script>
 </body>
 </html>

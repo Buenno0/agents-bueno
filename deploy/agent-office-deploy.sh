@@ -1,51 +1,62 @@
 #!/usr/bin/env bash
-# Instala uma versão do Agent Office enviada pelo GitHub Actions.
-# Fica em /usr/local/bin/agent-office-deploy (root:root, 755) e é o ÚNICO comando
-# que o usuário de deploy pode rodar com sudo. Uso: agent-office-deploy /tmp/agent-office-release-<sha>
+# Instala somente a vitrine. A unidade privada usa outro diretório.
 set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+umask 077
 
-SRC="${1:-}"
-if [[ ! "$SRC" =~ ^/tmp/agent-office-release-[0-9a-f]{40}$ ]] || [[ ! -d "$SRC" ]]; then
-  echo "pasta de release inválida" >&2; exit 2
+src="${1:-}"
+if [[ $# != 1 || ${SUDO_USER:-} != agent-office-deploy ||
+      ! "$src" =~ ^/tmp/agent-office-release-[0-9a-f]{40}(\.[a-zA-Z0-9]{8})?$ ]]; then
+  echo "origem de release inválida" >&2
+  exit 2
 fi
-cd "$SRC"
-for f in index.html server.mjs commander.html SHA256SUMS; do
-  [[ -f "$f" && ! -L "$f" ]] || { echo "faltando: $f" >&2; exit 2; }
+
+root=/opt/agent-office
+exec 9>/run/lock/agent-office-deploy.lock
+flock -n 9
+stage=$(mktemp -d "$root/.release.XXXXXXXX")
+trap 'rm -rf -- "$stage"' EXIT
+
+# Leia os arquivos como a conta que enviou o pacote. A cópia de trabalho fica
+# sob controle do root antes da validação, da instalação e da reinicialização.
+for name in index.html server.mjs SHA256SUMS; do
+  runuser -u "$SUDO_USER" -- timeout 10s head -c 2097153 -- "$src/$name" > "$stage/$name"
+  [[ $(wc -c < "$stage/$name") -le 2097152 ]]
 done
-sha256sum --quiet -c SHA256SUMS
-node --check server.mjs
+(
+  cd "$stage"
+  # Compare somente hashes dos nomes esperados, sem interpretar caminhos do manifesto.
+  sha256sum index.html server.mjs > expected
+  if ! cmp --silent expected SHA256SUMS; then
+    # Recebe o pacote do workflow anterior durante a migração.
+    head -n 2 SHA256SUMS | cmp --silent expected -
+  fi
+)
 
-ROOT=/opt/agent-office
-TS=$(date +%Y%m%d-%H%M%S)
-BACKUP="$ROOT/backup/$TS"
-mkdir -p "$BACKUP" "$ROOT/prototype" "$ROOT/server"
-cp -a "$ROOT/prototype" "$ROOT/server" "$BACKUP"/ 2>/dev/null || true
-
-install -m 644 -o root -g root index.html     "$ROOT/prototype/index.html"
-install -m 644 -o root -g root server.mjs     "$ROOT/server/server.mjs"
-install -m 644 -o root -g root commander.html "$ROOT/server/commander.html"
-
+backup=$(mktemp -d "$root/backup/$(date +%Y%m%d-%H%M%S).XXXXXXXX")
+cp -p -- "$root/prototype/index.html" "$root/server/server.mjs" "$backup/"
 restore() {
-  echo "falhou: voltando para $BACKUP" >&2
-  cp -a "$BACKUP/prototype/." "$ROOT/prototype/"
-  cp -a "$BACKUP/server/."    "$ROOT/server/"
+  echo "release rejeitada, restaurando a vitrine anterior" >&2
+  install -m 644 -- "$backup/index.html" "$root/prototype/index.html"
+  install -m 644 -- "$backup/server.mjs" "$root/server/server.mjs"
   systemctl restart agent-office
   exit 1
 }
 
-systemctl restart agent-office
-ok=0
+install -m 644 -- "$stage/index.html" "$root/prototype/index.html" || restore
+install -m 644 -- "$stage/server.mjs" "$root/server/server.mjs" || restore
+systemctl restart agent-office || restore
 for _ in $(seq 1 15); do
-  if curl -fsS -m 2 http://127.0.0.1:8788/healthz >/dev/null && \
-     [[ "$(curl -s -o /dev/null -w '%{http_code}' -m 3 http://127.0.0.1:8788/)" == "200" ]]; then ok=1; break; fi
+  if curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/dev/null &&
+     curl -fsS --max-time 3 http://127.0.0.1:8788/ -o "$stage/response" &&
+     cmp --silent "$stage/index.html" "$stage/response"; then
+    # Preserve older backup layouts and retain the five newest from this installer.
+    mapfile -t backups < <(find "$root/backup" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+      grep -E '^[0-9]{8}-[0-9]{6}\.[a-zA-Z0-9]{8}$' | sort -r)
+    for expired in "${backups[@]:5}"; do rm -rf -- "$root/backup/$expired"; done
+    echo "vitrine publicada"
+    exit 0
+  fi
   sleep 1
 done
-[[ $ok == 1 ]] || restore
-
-# O Comandante só reinicia se já estiver ligado (ele não é ligado por este script).
-if systemctl is-active --quiet agent-office-admin; then systemctl restart agent-office-admin; fi
-
-# guarda só os 5 backups mais recentes
-ls -1dt "$ROOT"/backup/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
-rm -rf "$SRC"
-echo "ok: $(sha256sum "$ROOT/prototype/index.html" | cut -c1-16) publicado"
+restore

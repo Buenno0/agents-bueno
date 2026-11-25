@@ -126,7 +126,7 @@ Esperado:
   sudo systemctl restart cloudflared
   ```
   **Não** publique a regra de `/api/admin` neste deploy. Se ela já existir no arquivo, mantenha-a atrás do Access, como está no exemplo.
-- **Caddy (alternativa):** `@office_public path / /index.html /api/public/state /api/public/weather` (já atualizado no exemplo). Depois rode `sudo caddy validate --config /etc/caddy/Caddyfile` e `sudo systemctl reload caddy`.
+- **Caddy:** `@office_public path / /index.html /api/public/state /api/public/weather`. O exemplo desativa a API administrativa TCP. Valide com `sudo caddy validate --config /etc/caddy/Caddyfile` e reinicie o Caddy na janela aprovada. A configuração com a API desativada não aceita reload.
 
 Teste externo:
 
