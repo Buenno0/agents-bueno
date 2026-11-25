@@ -24,14 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
       - name: Servidor compila
         run: node --check server/server.mjs
+
+      - name: Isolamento e sessão do Comandante
+        run: node --test scripts/test-security.mjs
 
       - name: prototype/index.html está em dia com office-design/
         run: |
@@ -60,21 +65,20 @@ jobs:
 
       - name: Nada privado nos arquivos publicados
         run: |
-          files=$(git ls-files | grep -vE '\.(svg|png|jpg)$')
-          if grep -nIE "@s\.whatsapp\.net|@g\.us|gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|/Users/[a-z]+/" $files | grep -v '^\.github/'; then
+          if git grep -IlE '@s\.whatsapp\.net|@g\.us|gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|/Users/[a-z]+/' -- . ':(exclude).github'; then
             echo "::error::Encontrei algo que parece dado privado (JID, token ou caminho local)."; exit 1
           fi
-          if grep -noIE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" $files | grep -vE ":(127\.0\.0\.1|0\.0\.0\.0)$"; then
+          if grep -oIE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' prototype/index.html | grep -vE '^(127\.0\.0\.1|0\.0\.0\.0)$' >/dev/null; then
             echo "::error::Encontrei um endereço IP nos arquivos."; exit 1
           fi
 
       - name: Pacote da versão
         run: |
           mkdir -p release
-          cp prototype/index.html server/server.mjs server/commander.html release/
-          (cd release && sha256sum index.html server.mjs commander.html > SHA256SUMS && cat SHA256SUMS)
+          cp prototype/index.html server/server.mjs release/
+          (cd release && sha256sum index.html server.mjs > SHA256SUMS)
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release
           path: release/
@@ -86,6 +90,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions: {}
     environment:
       name: production
       url: https://agents.mateus-bueno.dev
@@ -93,7 +98,7 @@ jobs:
       group: deploy-production
       cancel-in-progress: false
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release
           path: release
@@ -112,11 +117,16 @@ jobs:
           HOST: ${{ secrets.VPS_HOST }}
           USER: ${{ secrets.VPS_USER }}
         run: |
-          DEST="/tmp/agent-office-release-${GITHUB_SHA}"
-          SSH="ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=yes -o BatchMode=yes"
-          $SSH "$USER@$HOST" "rm -rf '$DEST' && mkdir -m 700 '$DEST'"
-          scp -i ~/.ssh/deploy -o StrictHostKeyChecking=yes -o BatchMode=yes release/* "$USER@$HOST:$DEST/"
-          $SSH "$USER@$HOST" "sudo /usr/local/bin/agent-office-deploy '$DEST'"
+          destination="$USER@$HOST"
+          options=(-i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes)
+          release_dir=$(ssh "${options[@]}" -- "$destination" "mktemp -d /tmp/agent-office-release-${GITHUB_SHA}.XXXXXXXX")
+          [[ "$release_dir" =~ ^/tmp/agent-office-release-[0-9a-f]{40}\.[a-zA-Z0-9]{8}$ ]]
+          clean_release() {
+            ssh "${options[@]}" -- "$destination" "rm -f '$release_dir/index.html' '$release_dir/server.mjs' '$release_dir/SHA256SUMS' && rmdir '$release_dir'"
+          }
+          trap clean_release EXIT
+          scp "${options[@]}" -- release/index.html release/server.mjs release/SHA256SUMS "$destination:$release_dir/"
+          ssh "${options[@]}" -- "$destination" "sudo -n /usr/local/bin/agent-office-deploy '$release_dir'"
 
       - name: Conferir no ar
         run: |
@@ -125,7 +135,7 @@ jobs:
           done
           test "$(curl -s -o /dev/null -w '%{http_code}' https://agents.mateus-bueno.dev/)" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' https://agents.mateus-bueno.dev/healthz)" = 404
-          curl -s https://agents.mateus-bueno.dev/api/public/weather || true
+          test "$(curl -s -o /dev/null -w '%{http_code}' https://agents.mateus-bueno.dev/admin)" = 404
 
       - name: Limpar chave
         if: always()

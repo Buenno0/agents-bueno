@@ -1,4 +1,8 @@
-# Public-only direct TLS alternative. Commander remains on the protected Tunnel.
+# Use systemctl restart caddy after validating changes. Reload needs the admin API.
+{
+    admin off
+}
+
 agents.mateus-bueno.dev {
     encode zstd gzip
     header {
@@ -8,9 +12,16 @@ agents.mateus-bueno.dev {
 
     @office_public path / /index.html /api/public/state /api/public/weather
     handle @office_public {
-        reverse_proxy 127.0.0.1:8788
+        reverse_proxy 127.0.0.1:8788 {
+            header_up X-Office-Client-IP {remote_host}
+            header_up -Cookie
+            header_up -Authorization
+        }
     }
     handle {
         respond 404
     }
 }
+
+# Enable this import after configuring the private hostname and service.
+# import /etc/caddy/agent-office-commander.caddy

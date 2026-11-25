@@ -6,6 +6,7 @@ import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
 import { URL } from "node:url";
+import { promisify } from "node:util";
 
 const HOST = "127.0.0.1";
 const MODE = process.env.AGENT_OFFICE_MODE || "public";
@@ -17,6 +18,14 @@ const SNAPSHOT_FILE = process.env.AGENT_OFFICE_SNAPSHOT_FILE || "/var/lib/agent-
 const AUTOMATION_DIR = process.env.OPENBOT_AUTOMATION_DIR || path.join(os.homedir(), ".config", "OpenBot", "automation");
 const ALLOWED_ADMIN_EMAIL = process.env.AGENT_OFFICE_ADMIN_EMAIL || "";
 const ALLOWED_ORIGIN = process.env.AGENT_OFFICE_ALLOWED_ORIGIN || "";
+const ADMIN_AUTH = process.env.AGENT_OFFICE_ADMIN_AUTH || "access";
+const LOCAL_LOGIN = ADMIN_AUTH === "password";
+const PASSWORD_RECORD = /^scrypt:([0-9a-f]{32}):([0-9a-f]{64})$/.exec(process.env.AGENT_OFFICE_ADMIN_PASSWORD_HASH || "");
+const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 3, maxmem: 48 * 1024 * 1024 };
+const derivePassword = promisify(crypto.scrypt);
+const SESSION_COOKIE = "__Host-ao_session";
+const SESSION_TTL = 8 * 60 * 60 * 1000;
+const sessionHash = token => crypto.createHash("sha256").update(token).digest("hex");
 const ACCESS_TEAM = process.env.AGENT_OFFICE_ACCESS_TEAM || "";
 const ACCESS_AUDIENCE = process.env.AGENT_OFFICE_ACCESS_AUDIENCE || "";
 const ACCESS_ISSUER = `https://${ACCESS_TEAM}.cloudflareaccess.com`;
@@ -168,28 +177,42 @@ const AGENT_MAP_FILE = process.env.AGENT_OFFICE_AGENT_MAP_FILE || "/etc/agent-of
 
 const rateBuckets = new Map();
 const pendingBindings = new Map();
+const sessions = new Map();
+let checkingPassword = false;
 let receipts;
+let expireReceipts;
 if (IS_ADMIN) {
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(ACCESS_TEAM) || !ACCESS_AUDIENCE ||
-      !ALLOWED_ADMIN_EMAIL || !/^https:\/\/[a-z0-9.-]+(?::[0-9]+)?$/.test(ALLOWED_ORIGIN)) {
+  const accessConfigured = /^[a-z0-9][a-z0-9-]*$/.test(ACCESS_TEAM) && ACCESS_AUDIENCE && ALLOWED_ADMIN_EMAIL;
+  if (!/^https:\/\/[a-z0-9.-]+(?::[0-9]+)?$/.test(ALLOWED_ORIGIN) ||
+      !(LOCAL_LOGIN ? PASSWORD_RECORD : ADMIN_AUTH === "access" && accessConfigured)) {
     throw new Error("admin_configuration_required");
   }
   const { DatabaseSync } = await import("node:sqlite");
   receipts = new DatabaseSync(process.env.AGENT_OFFICE_RECEIPTS_FILE || "/var/lib/agent-office-admin/receipts.sqlite");
   receipts.exec(`
     PRAGMA journal_mode = WAL;
+    PRAGMA secure_delete = ON;
     CREATE TABLE IF NOT EXISTS receipts (
       id TEXT PRIMARY KEY, operator TEXT NOT NULL, slug TEXT NOT NULL, agentId TEXT NOT NULL,
       hash TEXT NOT NULL, created INTEGER NOT NULL, deliveryId TEXT NOT NULL UNIQUE,
       upstreamId TEXT, status TEXT, position INTEGER
     );
+    CREATE INDEX IF NOT EXISTS receipts_created ON receipts (created);
   `);
+  expireReceipts = receipts.prepare("DELETE FROM receipts WHERE created <= ?");
+  expireReceipts.run(Date.now() - RECEIPT_TTL);
 }
 
 const maintenance = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateBuckets) if (entry.resetAt <= now) rateBuckets.delete(key);
   for (const [key, entry] of pendingBindings) if (entry.expires <= now) pendingBindings.delete(key);
+  for (const [key, session] of sessions) if (session.expires <= now) sessions.delete(key);
+  try {
+    expireReceipts?.run(now - RECEIPT_TTL);
+  } catch {
+    console.error(JSON.stringify({ event: "receipt_cleanup_failed" }));
+  }
 }, 60_000);
 maintenance.unref();
 
@@ -209,6 +232,59 @@ function checkRateLimit(ip, bucketType, limit, windowMs) {
   };
 }
 
+function requestIp(req) {
+  const peer = req.socket.remoteAddress;
+  if (peer !== HOST) return peer;
+  const forwarded = process.env.AGENT_OFFICE_TRUST_LOCAL_PROXY === "1" ? req.headers["x-office-client-ip"]
+    : process.env.AGENT_OFFICE_TRUST_CF_IP === "1" ? req.headers["cf-connecting-ip"] : null;
+  return typeof forwarded === "string" && isIP(forwarded) ? forwarded : peer;
+}
+
+function sessionCookie(value, maxAge) {
+  return `${SESSION_COOKIE}=${value}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+function passwordSession(req) {
+  const cookies = (req.headers.cookie || "").split(";").map(part => part.trim())
+    .filter(part => part.startsWith(SESSION_COOKIE + "="));
+  if (cookies.length !== 1) return null;
+  const token = cookies[0].slice(SESSION_COOKIE.length + 1);
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
+  const key = sessionHash(token);
+  const session = sessions.get(key);
+  return session && session.expires > Date.now() ? { ...session, key } : null;
+}
+
+async function login(req, res, ip) {
+  if (req.method !== "POST") return sendError(res, 405, "method_not_allowed", { Allow: "POST" });
+  if (req.headers.origin !== ALLOWED_ORIGIN) return sendError(res, 403, "forbidden");
+  const limit = checkRateLimit(ip, "login", 5, 15 * 60_000);
+  if (!limit.allowed) return sendError(res, 429, "rate_limited", { "Retry-After": String(limit.retryAfterSec) });
+  const body = await readJsonBody(req);
+  if (Object.keys(body).length !== 1 || typeof body.password !== "string" ||
+      !body.password || Buffer.byteLength(body.password) > 1024) return sendError(res, 400, "invalid_request");
+  if (checkingPassword) return sendError(res, 429, "rate_limited", { "Retry-After": "1" });
+  const total = checkRateLimit("all", "login_global", 20, 60_000);
+  if (!total.allowed) return sendError(res, 429, "rate_limited", { "Retry-After": String(total.retryAfterSec) });
+  checkingPassword = true;
+  let matches;
+  try {
+    const key = await derivePassword(body.password, Buffer.from(PASSWORD_RECORD[1], "hex"), 32, SCRYPT_OPTIONS);
+    matches = crypto.timingSafeEqual(key, Buffer.from(PASSWORD_RECORD[2], "hex"));
+  } finally {
+    checkingPassword = false;
+  }
+  if (!matches) return sendError(res, 401, "unauthorized");
+  rateBuckets.delete(`login:${ip}`);
+  const oldSession = passwordSession(req);
+  if (oldSession) sessions.delete(oldSession.key);
+  if (sessions.size >= 32) sessions.delete(sessions.keys().next().value);
+  const token = crypto.randomBytes(32).toString("base64url");
+  const csrf = crypto.randomBytes(32).toString("base64url");
+  sessions.set(sessionHash(token), { operator: "local-owner", csrf, expires: Date.now() + SESSION_TTL });
+  return sendJson(res, 200, { csrfToken: csrf }, { ...PRIVATE_CACHE, "Set-Cookie": sessionCookie(token, SESSION_TTL / 1000) });
+}
+
 function sendJson(res, statusCode, payload, extraHeaders = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
@@ -217,6 +293,7 @@ function sendJson(res, statusCode, payload, extraHeaders = {}) {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
+    ...(IS_ADMIN ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
     ...extraHeaders,
   });
   res.end(body);
@@ -236,6 +313,7 @@ function sendPage(req, res, html, headers, publicFonts = false) {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
+    ...(IS_ADMIN ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
     "Content-Security-Policy": `default-src 'none'; script-src ${scriptHashes || "'none'"}; style-src 'unsafe-inline'${fonts}; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`,
     ...headers,
   });
@@ -336,7 +414,10 @@ function redactSecrets(text) {
   return text
     .replace(/Bearer\s+[A-Za-z0-9._\-+/=]+/gi, "Bearer [REDACTED]")
     .replace(/sk-[A-Za-z0-9_-]{16,}/g, "[REDACTED_KEY]")
-    .replace(/\b\d{10,15}@(?:s\.whatsapp\.net|g\.us)\b/g, "[REDACTED_JID]")
+    .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|(?:AKIA|ASIA)[0-9A-Z]{16})\b/g, "[REDACTED_KEY]")
+    .replace(/[^\s<>"'=@]+@(?:s\.whatsapp\.net|g\.us|lid)\b/gi, "[REDACTED_JID]")
+    .replace(/(?<!\d)(?:\+[1-9]\d{7,14}|55\d{10,11})(?!\d)/g, "[REDACTED_PHONE]")
+    .replace(/(?:\+55[ .-]?)?(?:\(\d{2}\)[ .-]?|\b\d{2}[ .-])\d{4,5}[ .-]\d{4}\b/g, "[REDACTED_PHONE]")
     .replace(/\/(?:Users|home|var\/lib\/openbot)\/[^\s"')]+/g, "[REDACTED_PATH]");
 }
 
@@ -450,15 +531,16 @@ function pathClass(pathname) {
   if (pathname === "/api/public/state") return "public_state";
   if (pathname === "/api/public/weather") return "public_weather";
   if (pathname === "/api/admin/state" || pathname === "/api/admin/session") return "admin_state";
+  if (pathname === "/api/admin/login") return "admin_login";
+  if (pathname === "/api/admin/logout") return "admin_logout";
+  if (pathname === "/admin") return "admin_page";
   const route = pathname.match(/^\/api\/admin\/agents\/[a-z0-9-]+\/(messages|deliveries|pending)(?:\/|$)/);
   return route?.[1] ?? "unknown";
 }
 
 const server = http.createServer({ requestTimeout: 15_000, headersTimeout: 10_000 }, async (req, res) => {
   const startNs = process.hrtime.bigint();
-  const proxyIp = req.headers["cf-connecting-ip"];
-  const clientIp = process.env.AGENT_OFFICE_TRUST_CF_IP === "1" && typeof proxyIp === "string" &&
-      isIP(proxyIp) ? proxyIp : req.socket.remoteAddress;
+  const clientIp = requestIp(req);
   let pathname = "";
   try {
     const url = new URL(req.url || "/", `http://${HOST}:${PORT}`);
@@ -500,11 +582,13 @@ const server = http.createServer({ requestTimeout: 15_000, headersTimeout: 10_00
     }
 
     if (IS_ADMIN && (pathname === "/admin" || pathname.startsWith("/api/admin/"))) {
-      const auth = await authenticateCommander(req);
-      if (!auth) return sendError(res, 401, "unauthorized");
-      const rl = checkRateLimit(auth.operator, "admin", 30, 60_000);
-      if (!rl.allowed) return sendError(res, 429, "rate_limited", { "Retry-After": String(rl.retryAfterSec) });
       if (url.search) return sendError(res, 400, "invalid_request");
+      if (LOCAL_LOGIN && pathname === "/api/admin/login") return await login(req, res, clientIp);
+
+      const auth = LOCAL_LOGIN ? passwordSession(req) : await authenticateCommander(req);
+      if (!auth && !(LOCAL_LOGIN && pathname === "/admin")) return sendError(res, 401, "unauthorized");
+      const rl = checkRateLimit(auth?.operator ?? clientIp, auth ? "admin" : "admin_page", 30, 60_000);
+      if (!rl.allowed) return sendError(res, 429, "rate_limited", { "Retry-After": String(rl.retryAfterSec) });
 
       if (pathname === "/admin") {
         if (req.method !== "GET" && req.method !== "HEAD") {
@@ -513,13 +597,20 @@ const server = http.createServer({ requestTimeout: 15_000, headersTimeout: 10_00
         const catalog = AGENT_CATALOG.map(({ slug, displayName, room }) => ({ slug, displayName, room }));
         const catalogJson = JSON.stringify(catalog).replaceAll("<", "\\u003c");
         const html = fs.readFileSync(path.join(import.meta.dirname, "commander.html"), "utf8")
-          .replace("/* AGENT_CATALOG */ []", () => catalogJson);
+          .replace("/* AGENT_CATALOG */ []", () => catalogJson)
+          .replace("/* PASSWORD_LOGIN */ false", String(LOCAL_LOGIN));
         return sendPage(req, res, html, PRIVATE_CACHE);
       }
 
       if (req.method === "POST" &&
           (req.headers.origin !== ALLOWED_ORIGIN || req.headers["x-agent-office-csrf"] !== auth.csrf)) {
         return sendError(res, 403, "forbidden");
+      }
+
+      if (LOCAL_LOGIN && pathname === "/api/admin/logout") {
+        if (req.method !== "POST") return sendError(res, 405, "method_not_allowed", { Allow: "POST" });
+        sessions.delete(auth.key);
+        return sendJson(res, 200, { ok: true }, { ...PRIVATE_CACHE, "Set-Cookie": sessionCookie("", 0) });
       }
 
       if (pathname === "/api/admin/session" || pathname === "/api/admin/state") {
@@ -590,7 +681,8 @@ const server = http.createServer({ requestTimeout: 15_000, headersTimeout: 10_00
         if (req.method !== "GET") return sendError(res, 405, "method_not_allowed", { Allow: "GET" });
         const [, slug, opaqueDeliveryId] = dlvMatch;
         const binding = receipts.prepare("SELECT * FROM receipts WHERE deliveryId = ?").get(opaqueDeliveryId);
-        if (!binding?.upstreamId || binding.operator !== auth.operator || binding.slug !== slug || resolveAgentId(slug) !== binding.agentId) {
+        if (!binding?.upstreamId || binding.created <= Date.now() - RECEIPT_TTL ||
+            binding.operator !== auth.operator || binding.slug !== slug || resolveAgentId(slug) !== binding.agentId) {
           return sendError(res, 404, "not_found");
         }
         const upstream = await callOpenBot(
@@ -683,7 +775,7 @@ const server = http.createServer({ requestTimeout: 15_000, headersTimeout: 10_00
     console.log(
       JSON.stringify({
         ts: new Date().toISOString(),
-        method: req.method,
+        method: ["GET", "HEAD", "POST"].includes(req.method) ? req.method : "OTHER",
         route: pathClass(pathname),
         status: res.statusCode,
         durationMs: Number(durationMs.toFixed(2)),

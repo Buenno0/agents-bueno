@@ -11,3 +11,10 @@ prototype/index.v2-backup.html
 node_modules/
 *.log
 *.sqlite
+*.sqlite-*
+.env
+.env.*
+*.env
+*.env.*
+!*.env.example
+agent-map.json
