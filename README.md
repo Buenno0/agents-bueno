@@ -38,6 +38,7 @@ node office-design/build-prototype.mjs        # gera prototype/index.html
 AGENT_OFFICE_PORT=8788 node server/server.mjs # servidor público em http://127.0.0.1:8788
 node scripts/test-layout.mjs                  # testa a planta automática
 node --test scripts/test-security.mjs         # testa login e isolamento com dados fictícios
+node scripts/gerar-senha.mjs                  # cria o registro da senha do Comandante
 ```
 
 Precisa de Node 22 ou mais novo.
@@ -48,6 +49,8 @@ Precisa de Node 22 ou mais novo.
 - A página roda com CSP estrita, e só o próprio servidor busca dados externos (clima).
 - A configuração de login direto do Comandante usa endereço separado da vitrine, senha com scrypt, sessão revogável e proteção CSRF. O serviço fala com o OpenBot apenas em `127.0.0.1`.
 - Ações perigosas continuam pedindo confirmação no próprio OpenBot.
+
+Como entrar no painel privado: [COMO-ENTRAR-NO-COMANDANTE.md](COMO-ENTRAR-NO-COMANDANTE.md).
 
 Detalhes em [ARQUITETURA-E-SEGURANCA.md](ARQUITETURA-E-SEGURANCA.md) e [PLANO-DEPLOY-OCI.md](PLANO-DEPLOY-OCI.md).
 
